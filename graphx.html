@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GraphX — Graph Traversal Visualizer</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: rgba(255, 255, 255, .05);
+      --bd: rgba(255, 255, 255, .12);
+      --tx: #e7eaf6;
+      --mu: #9aa3c2;
+      --pu: #8b5cf6;
+      --cy: #22d3ee;
+      --gr: #34d399;
+      --or: #fbbf24;
+      --pk: #f472b6;
+      --nd: #141a33;
+      --edge: #5b6595;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    :root[data-theme=light] {
+      --bg: #f4f6fc;
+      --card: #fff;
+      --bd: #d8def0;
+      --tx: #1a2140;
+      --mu: #5a6488;
+      --pu: #6d3fe0;
+      --cy: #0891b2;
+      --gr: #059669;
+      --or: #d97706;
+      --pk: #db2777;
+      --nd: #eef1fb;
+      --edge: #8a94b8
+    }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(70px + env(safe-area-inset-top, 0px))
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(900px 500px at 80% -10%, rgba(139, 92, 246, .22), transparent), radial-gradient(700px 400px at 0 10%, rgba(34, 211, 238, .12), transparent), var(--bg);
+      color: var(--tx);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      line-height: 1.5
+    }
+
+    .mono,
+    code,
+    pre {
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    nav {
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 20px;
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bd)
+    }
+
+    nav .logo {
+      font-weight: 700;
+      font-size: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--tx);
+      text-decoration: none
+    }
+
+    nav .links {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+      flex-wrap: wrap
+    }
+
+    nav .links a {
+      color: var(--mu);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 14px
+    }
+
+    nav .links a:hover {
+      color: var(--tx);
+      background: var(--card)
+    }
+
+    button,
+    select {
+      font: inherit;
+      color: var(--tx);
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 8px 14px;
+      cursor: pointer;
+      min-height: 40px;
+      transition: .15s
+    }
+
+    button:hover:not(:disabled) {
+      border-color: var(--pu);
+      transform: translateY(-1px)
+    }
+
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--cy);
+      outline-offset: 2px
+    }
+
+    .pri {
+      background: linear-gradient(135deg, var(--pu), var(--cy));
+      border: 0;
+      color: #fff;
+      font-weight: 600
+    }
+
+    .on {
+      border-color: var(--pu);
+      background: color-mix(in srgb, var(--pu) 25%, transparent)
+    }
+
+    section {
+      max-width: 1240px;
+      margin: auto;
+      padding: 56px 20px
+    }
+
+    h2 {
+      font-size: clamp(26px, 4vw, 38px);
+      margin: 0 0 6px
+    }
+
+    .sub {
+      color: var(--mu);
+      margin: 0 0 24px
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 18px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .15)
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 18px
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 30px;
+      align-items: center;
+      padding-top: 40px
+    }
+
+    @media(max-width:800px) {
+      .hero {
+        grid-template-columns: 1fr
+      }
+    }
+
+    h1 {
+      font-size: clamp(34px, 6vw, 60px);
+      line-height: 1.05;
+      margin: 0 0 14px;
+      background: linear-gradient(90deg, var(--pu), var(--cy), var(--pk));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      padding: 4px 10px;
+      border: 1px solid var(--bd);
+      border-radius: 99px;
+      margin: 3px 4px 3px 0;
+      color: var(--mu)
+    }
+
+    .mu {
+      color: var(--mu)
+    }
+
+    .hero svg circle.p {
+      animation: pulse 2.4s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center
+    }
+
+    @keyframes pulse {
+      50% {
+        transform: scale(1.15)
+      }
+    }
+
+    .hero svg line {
+      stroke-dasharray: 6 6;
+      animation: dash 3s linear infinite
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -24
+      }
+    }
+
+    .tool {
+      position: sticky;
+      top: calc(58px + env(safe-area-inset-top, 0px));
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding: 10px;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--bd);
+      border-radius: 14px
+    }
+
+    .tool label {
+      font-size: 12px;
+      color: var(--mu);
+      display: flex;
+      flex-direction: column
+    }
+
+    .sep {
+      width: 1px;
+      height: 30px;
+      background: var(--bd)
+    }
+
+    .viz {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: 18px
+    }
+
+    @media(max-width:1000px) {
+      .viz {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .cv {
+      position: relative;
+      border-radius: 18px;
+      border: 1px solid var(--bd);
+      overflow: hidden;
+      background-color: var(--card);
+      background-image: radial-gradient(var(--bd) 1px, transparent 1px);
+      background-size: 22px 22px
+    }
+
+    .cv svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      touch-action: none;
+      aspect-ratio: 8/5
+    }
+
+    .ed {
+      stroke: var(--edge);
+      stroke-width: 2.5;
+      transition: .4s
+    }
+
+    .ed.on {
+      stroke: var(--gr);
+      stroke-width: 4
+    }
+
+    .hit {
+      stroke: transparent;
+      stroke-width: 16;
+      cursor: pointer
+    }
+
+    .nd {
+      cursor: grab
+    }
+
+    .nd circle.b {
+      fill: var(--nd);
+      stroke: var(--pu);
+      stroke-width: 3;
+      transition: .4s;
+      filter: drop-shadow(0 0 5px var(--pu))
+    }
+
+    .nd text {
+      fill: var(--tx);
+      font-weight: 700;
+      font-size: 16px;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none
+    }
+
+    .nd.disc circle.b {
+      stroke: var(--cy);
+      filter: drop-shadow(0 0 9px var(--cy))
+    }
+
+    .nd.vis circle.b {
+      stroke: var(--gr);
+      fill: color-mix(in srgb, var(--gr) 22%, var(--nd));
+      filter: drop-shadow(0 0 9px var(--gr))
+    }
+
+    .nd.cur circle.b {
+      stroke: var(--or);
+      fill: color-mix(in srgb, var(--or) 30%, var(--nd));
+      filter: drop-shadow(0 0 14px var(--or))
+    }
+
+    .nd.sel circle.b {
+      stroke: var(--pk);
+      filter: drop-shadow(0 0 12px var(--pk))
+    }
+
+    .ring {
+      fill: none;
+      stroke: var(--or);
+      stroke-width: 2;
+      stroke-dasharray: 4 4;
+      animation: spin 6s linear infinite;
+      transform-box: fill-box;
+      transform-origin: center
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .tag {
+      font-size: 11px;
+      fill: var(--mu);
+      text-anchor: middle;
+      pointer-events: none
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--mu);
+      padding: 8px 12px
+    }
+
+    .dot {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid;
+      margin-right: 5px;
+      vertical-align: -1px
+    }
+
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px
+    }
+
+    .stats div {
+      background: var(--nd);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: center
+    }
+
+    .stats b {
+      display: block;
+      font-size: 22px
+    }
+
+    .stats span {
+      font-size: 11px;
+      color: var(--mu)
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-height: 44px;
+      align-items: center
+    }
+
+    .stk {
+      flex-direction: column-reverse;
+      align-items: stretch;
+      width: 90px
+    }
+
+    .chip {
+      background: var(--nd);
+      border: 1.5px solid var(--cy);
+      border-radius: 10px;
+      padding: 6px 14px;
+      font-weight: 700;
+      text-align: center
+    }
+
+    .chip.in {
+      animation: in .45s ease-out
+    }
+
+    @keyframes in {
+      from {
+        opacity: 0;
+        transform: translateX(24px) scale(.7)
+      }
+    }
+
+    .stk .chip.in {
+      animation-name: ind
+    }
+
+    @keyframes ind {
+      from {
+        opacity: 0;
+        transform: translateY(-24px)
+      }
+    }
+
+    .stk .chip {
+      border-color: var(--pu)
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--mu)
+    }
+
+    .pnl {
+      margin-bottom: 14px
+    }
+
+    .why {
+      min-height: 60px
+    }
+
+    .bt {
+      color: var(--or);
+      font-weight: 700;
+      animation: pulse 1s infinite
+    }
+
+    pre {
+      margin: 0;
+      background: #0d1226;
+      color: #cdd6f4;
+      border-radius: 12px;
+      padding: 14px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.7
+    }
+
+    pre span {
+      display: block;
+      padding: 0 8px;
+      border-left: 3px solid transparent
+    }
+
+    pre span.hl {
+      background: rgba(251, 191, 36, .18);
+      border-color: var(--or)
+    }
+
+    .k {
+      color: #c4a7ff
+    }
+
+    .done {
+      border-color: var(--gr);
+      background: color-mix(in srgb, var(--gr) 12%, var(--card))
+    }
+
+    .opts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 14px 0
+    }
+
+    .opts button {
+      padding: 14px
+    }
+
+    .opts .ok {
+      border-color: var(--gr);
+      background: color-mix(in srgb, var(--gr) 22%, transparent)
+    }
+
+    .opts .no {
+      border-color: var(--pk)
+    }
+
+    #toasts {
+      position: fixed;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .toast {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      background-color: var(--nd);
+      border: 1px solid var(--pu);
+      border-radius: 12px;
+      padding: 10px 16px;
+      animation: in .3s
+    }
+
+    #modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60
+    }
+
+    #modal .card {
+      background: var(--nd);
+      max-width: 380px
+    }
+
+    footer {
+      text-align: center;
+      color: var(--mu);
+      padding: 30px 20px;
+      border-top: 1px solid var(--bd)
+    }
+
+    footer a {
+      color: var(--mu);
+      margin: 0 8px
+    }
+
+    kbd {
+      background: var(--card);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 1px 7px;
+      font-family: 'JetBrains Mono', monospace
+    }
+
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        animation: none !important;
+        transition: none !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav><a class="logo" href="#home"><svg width="28" height="28" viewBox="0 0 28 28">
+        <g stroke="var(--cy)" stroke-width="2">
+          <line x1="6" y1="7" x2="21" y2="10" />
+          <line x1="6" y1="7" x2="10" y2="22" />
+          <line x1="21" y1="10" x2="10" y2="22" />
+        </g>
+        <circle cx="6" cy="7" r="4" fill="var(--pu)" />
+        <circle cx="21" cy="10" r="4" fill="var(--cy)" />
+        <circle cx="10" cy="22" r="4" fill="var(--pk)" />
+      </svg>GraphX</a>
+    <div class="links"><a href="#home">Home</a><a href="#learn">Learn</a><a href="#visualizer">Visualizer</a><a
+        href="#practice">Practice</a><a href="#about">About</a></div>
+    <button id="theme" aria-label="Toggle dark or light theme">🌗</button><button id="kb"
+      aria-label="Keyboard shortcuts">⌨</button><button class="pri" onclick="location.hash='visualizer'">Launch
+      Visualizer</button>
+  </nav>
+
+  <section id="home" class="hero">
+    <div>
+      <div><span class="badge">Step-by-Step Execution</span><span class="badge">Interactive Graph</span><span
+          class="badge">Real-Time Algorithm State</span><span class="badge">Beginner Friendly</span></div><br>
+      <h1>Master Graph Traversal — One Step at a Time</h1>
+      <p class="mu" style="font-size:18px">Explore Breadth-First Search and Depth-First Search through an interactive
+        visualizer. Build your own graph, run algorithms, and watch every traversal step come to life.</p>
+      <button class="pri" onclick="setAlgo('bfs');location.hash='visualizer'">Start Visualizing →</button> <button
+        onclick="location.hash='learn'">Explore BFS &amp; DFS</button>
+    </div>
+    <svg viewBox="0 0 400 300" aria-hidden="true">
+      <g stroke="var(--cy)" stroke-width="2" opacity=".7">
+        <line x1="80" y1="150" x2="200" y2="70" />
+        <line x1="80" y1="150" x2="200" y2="230" />
+        <line x1="200" y1="70" x2="320" y2="70" />
+        <line x1="200" y1="230" x2="320" y2="230" />
+      </g>
+      <g stroke="var(--pu)" stroke-width="2">
+        <circle class="p" cx="80" cy="150" r="24" fill="var(--nd)" />
+        <circle class="p" cx="200" cy="70" r="24" fill="var(--nd)" style="animation-delay:.4s" />
+        <circle class="p" cx="200" cy="230" r="24" fill="var(--nd)" style="animation-delay:.8s" />
+        <circle class="p" cx="320" cy="70" r="24" fill="var(--nd)" style="animation-delay:1.2s" />
+        <circle class="p" cx="320" cy="230" r="24" fill="var(--nd)" style="animation-delay:1.6s" />
+      </g>
+      <g fill="var(--tx)" font-weight="700" text-anchor="middle"><text x="80" y="156">A</text><text x="200"
+          y="76">B</text><text x="200" y="236">C</text><text x="320" y="76">D</text><text x="320" y="236">E</text></g>
+    </svg>
+  </section>
+
+  <section id="learn">
+    <h2>What is Graph Traversal?</h2>
+    <p class="sub">Graph traversal is the process of systematically visiting the vertices of a graph. It is fundamental
+      to Data Structures and Algorithms and is used in networking, path finding, AI, and more.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Queue · Level by level</h3>
+        <h2 style="font-size:24px">Breadth-First Search</h2>
+        <p>BFS explores a graph level by level, visiting nearby nodes before going deeper. Data structure: <b>Queue</b>
+          (FIFO). Traversal: wide before deep. Common use: shortest path in unweighted graphs.</p><button
+          onclick="setAlgo('bfs');location.hash='visualizer'">Explore BFS →</button>
+      </div>
+      <div class="card">
+        <h3>Stack · Depth first</h3>
+        <h2 style="font-size:24px">Depth-First Search</h2>
+        <p>DFS explores as far as possible along one path before backtracking. Data structure: <b>Stack</b> / recursion
+          (LIFO). Traversal: deep before wide. Common use: path exploration and connectivity.</p><button
+          onclick="setAlgo('dfs');location.hash='visualizer'">Explore DFS →</button>
+      </div>
+    </div>
+    <p class="mu">Neither algorithm is universally better — the right choice depends on the problem.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Complexity — BFS</h3><b class="mono">Time O(V + E) · Space O(V)</b>
+      </div>
+      <div class="card">
+        <h3>Complexity — DFS</h3><b class="mono">Time O(V + E) · Space O(V)</b>
+      </div>
+    </div>
+    <p class="mu">V = number of vertices, E = number of edges. Both visit every vertex and edge at most once.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>BFS is used for</h3>Shortest path (unweighted) · Network broadcasting · Social connections · Web crawling ·
+        Level-order exploration
+      </div>
+      <div class="card">
+        <h3>DFS is used for</h3>Maze solving · Cycle detection · Connected components · Topological sorting · Path
+        exploration
+      </div>
+    </div>
+  </section>
+
+  <section id="visualizer">
+    <h2>Interactive Graph Builder</h2>
+    <p class="sub">Build a graph. Choose an algorithm. Watch it think. <span class="mu">Tip: drag nodes, double-click to
+        rename.</span></p>
+    <div class="tool" role="toolbar" aria-label="Graph and algorithm controls">
+      <button data-m="node">+ Add Node</button><button data-m="edge">↔ Add Edge</button><button data-m="del">🗑
+        Delete</button>
+      <select id="rn" aria-label="Random graph size">
+        <option>5</option>
+        <option>6</option>
+        <option selected>7</option>
+        <option>8</option>
+        <option>10</option>
+        <option>12</option>
+      </select><button id="rand">🎲 Random</button><button id="clear">Clear</button><span class="sep"></span>
+      <label>Graph<select id="dir">
+          <option value="0">Undirected</option>
+          <option value="1">Directed</option>
+        </select></label>
+      <label>Algorithm<select id="alg">
+          <option value="bfs">BFS</option>
+          <option value="dfs">DFS</option>
+        </select></label>
+      <label>Start<select id="st"></select></label><span class="sep"></span>
+      <button class="pri" id="go">▶ Start</button><button id="pause">⏸ Pause</button><button id="next">⏭ Next
+        Step</button><button id="reset">↻ Reset</button><span class="sep"></span>
+      <span id="spd"><button data-s="1500">Slow</button><button data-s="800" class="on">Normal</button><button
+          data-s="300">Fast</button></span>
+    </div>
+    <div class="viz">
+      <div>
+        <div class="cv"><svg id="svg" viewBox="0 0 800 500" role="img" aria-label="Graph canvas"></svg>
+          <div class="empty" id="empty">
+            <h2>Your graph is empty</h2>
+            <p class="mu">Add a node to start building your graph.</p><button class="pri" id="first">Add Your First
+              Node</button>
+          </div>
+          <div class="legend"><span><i class="dot" style="border-color:var(--pu)"></i>Unvisited</span><span><i
+                class="dot" style="border-color:var(--or)"></i>Current ▶</span><span><i class="dot"
+                style="border-color:var(--gr)"></i>Visited ✓</span><span><i class="dot"
+                style="border-color:var(--cy)"></i>Discovered (queued)</span><span><i class="dot"
+                style="border-color:var(--pk)"></i>Selected</span><span><b style="color:var(--gr)">━━</b> Traversed
+              edge</span></div>
+        </div>
+        <div class="card done" id="done" style="display:none;margin-top:14px"></div>
+        <div class="card" style="margin-top:14px">
+          <h3>See the Logic Behind the Visualization</h3>
+          <div style="display:flex;justify-content:flex-end"><button id="copy">Copy Code</button></div>
+          <pre id="code" class="mono"></pre>
+        </div>
+      </div>
+      <aside class="card">
+        <h2 id="ttl" style="font-size:24px"></h2>
+        <p class="mu" id="dsc" style="margin-top:0"></p>
+        <div class="stats">
+          <div><b id="sN">0</b><span>Nodes</span></div>
+          <div><b id="sE">0</b><span>Edges</span></div>
+          <div><b id="sV">0</b><span>Visited</span></div>
+          <div><b id="sS">0</b><span>Step</span></div>
+        </div>
+        <div class="pnl">
+          <h3>Current Node</h3><b id="cur" class="mono" style="font-size:20px">—</b>
+        </div>
+        <div class="pnl">
+          <h3 id="cth">Queue</h3>
+          <div id="cont" class="chips"></div><small class="mu" id="cnote"></small>
+        </div>
+        <div class="pnl">
+          <h3>Traversal Order</h3>
+          <div id="ord" class="mono"></div>
+        </div>
+        <div class="pnl why">
+          <h3>What's happening?</h3>
+          <div id="why"></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="practice">
+    <h2>Practice Arena</h2>
+    <p class="sub">Test your understanding of graph traversal. (Neighbors are visited in alphabetical order.)</p>
+    <div class="card">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" id="diff"><button data-d="0">🟢
+          Beginner</button><button data-d="1">🟡 Intermediate</button><button data-d="2">🔴 Advanced</button></div>
+      <div class="stats" style="margin-top:14px">
+        <div><b id="pA">0</b><span>Attempted</span></div>
+        <div><b id="pC">0</b><span>Correct</span></div>
+        <div><b id="pP">0%</b><span>Accuracy</span></div>
+        <div><b id="pK">0</b><span>Streak</span></div>
+      </div>
+      <h3 id="qt"></h3>
+      <div class="cv"><svg id="qsvg" viewBox="0 0 800 500" aria-label="Practice graph"></svg></div>
+      <div class="opts" id="opts"></div>
+      <div id="fb" style="min-height:50px"></div>
+      <button id="expl">Show Explanation</button> <button class="pri" id="nq">Next Question →</button>
+    </div>
+  </section>
+
+  <section id="about">
+    <h2>About GraphX</h2>
+    <p class="sub">GraphX is an interactive educational platform designed to make graph traversal algorithms easier to
+      understand through visualization, step-by-step execution, and hands-on experimentation.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3>Technology Used</h3>HTML · CSS · JavaScript · SVG (algorithms implemented locally, no dependencies)
+      </div>
+      <div class="card">
+        <h3>Project Topics</h3>Graph Traversal · BFS · DFS · Queue · Stack · Algorithm Complexity
+      </div>
+    </div>
+    <div class="card" style="text-align:center;margin-top:30px">
+      <h2>Ready to Traverse the Graph?</h2>
+      <p class="mu">Stop memorizing algorithms. Start visualizing them.</p><button class="pri"
+        onclick="location.hash='visualizer'">Launch Interactive Visualizer →</button>
+    </div>
+  </section>
+  <footer><b>GraphX</b> — Interactive Graph Traversal Learning Platform<br><a href="#home">Home</a><a
+      href="#learn">Learn</a><a href="#visualizer">Visualizer</a><a href="#practice">Practice</a><a
+      href="#about">About</a><br>BFS • DFS • Interactive Learning<br>© 2026 GraphX</footer>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="modal">
+    <div class="card">
+      <h2 style="font-size:22px">Keyboard Shortcuts</h2>
+      <p><kbd>Space</kbd> Start / Pause<br><kbd>→</kbd> Next step<br><kbd>R</kbd> Reset<br><kbd>Delete</kbd> Delete
+        selected node<br><kbd>Esc</kbd> Cancel operation</p><button onclick="modal.style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+    const PSEUDO = {
+      bfs: ['BFS(Graph, Start)', '  Queue ← empty; Visited ← empty', '  Add Start to Queue; mark Start visited', '  while Queue is not empty:', '    Node ← Remove Front', '    for each Neighbor of Node:', '      if Neighbor is not visited:', '        Mark Neighbor as visited', '        Add Neighbor to Queue'],
+      dfs: ['DFS(Graph, Start)', '  Stack ← empty; Visited ← empty', '  Push Start onto Stack', '  while Stack is not empty:', '    Node ← Top of Stack', '    if Node has an unvisited neighbor:', '      Visit Neighbor', '      Push Neighbor', '    else:', '      Pop Node  // backtrack']
+    };
+    let G = {nodes: [], edges: [], directed: false}, nid = 0, mode = 'select', sel = null, edgeFrom = null, steps = [], idx = -1, timer = null, algo = 'bfs', speed = 800, start = null, prevC = [], prevO = 0, drag = null;
+    const L = (g, id) => (g.nodes.find(n => n.id == id) || {}).label;
+    function toast(m) {const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; $('#toasts').append(t); setTimeout(() => t.remove(), 2600)}
+    function nbrs(g, id) {const r = new Set(); g.edges.forEach(e => {if (e.s == id) r.add(e.t); else if (!g.directed && e.t == id) r.add(e.s)}); return g.nodes.map(n => n.id).filter(x => r.has(x))}
+    function ekey(g, a, b) {const e = g.edges.find(e => (e.s == a && e.t == b) || (!g.directed && e.s == b && e.t == a)); return e.s + '|' + e.t}
+    function run(g, s, a) { // the step engine: real BFS / DFS producing replayable states
+      const l = id => L(g, id), S = [], vis = new Set([s]), ord = [], tr = []; let c = [s];
+      const snap = (type, cur, line, d, bt) => S.push({a, type, cur, line, d, bt, ord: [...ord], c: [...c], tr: [...tr], nv: vis.size});
+      if (a == 'bfs') {
+        snap('START', s, 2, `Starting BFS from ${l(s)}. ${l(s)} is marked visited and added to the queue.`);
+        while (c.length) {
+          const u = c.shift(); ord.push(u); const f = nbrs(g, u).filter(x => !vis.has(x));
+          snap('QUEUE_REMOVE', u, 4, `${l(u)} is removed from the front of the queue and processed. ` + (f.length ? `Its unvisited neighbor${f.length > 1 ? 's' : ''} ${f.map(l).join(', ')} will be discovered.` : 'It has no unvisited neighbors.'));
+          f.forEach(v => {vis.add(v); c.push(v); tr.push(ekey(g, u, v)); snap('DISCOVER', u, 8, `${l(v)} (neighbor of ${l(u)}) is not visited: mark it visited and add it to the rear of the queue.`)})
+        }
+        snap('COMPLETE', null, 3, 'The queue is empty — BFS is complete.')
+      }
+      else {
+        ord.push(s); snap('START', s, 2, `Starting DFS from ${l(s)}. ${l(s)} is visited and pushed onto the stack.`);
+        while (c.length) {
+          const u = c[c.length - 1], v = nbrs(g, u).find(x => !vis.has(x));
+          if (v !== undefined) {vis.add(v); ord.push(v); c.push(v); tr.push(ekey(g, u, v)); snap('VISIT', v, 7, `${l(u)} has an unvisited neighbor ${l(v)}. Visit ${l(v)} and push it onto the stack.`)}
+          else {c.pop(); const p = c.length ? l(c[c.length - 1]) : null; snap('BACKTRACK', u, 9, `${l(u)} has no unvisited neighbors — Backtracking… pop ${l(u)}${p ? ` and return to ${p}` : ''}.`, true)}
+        }
+        snap('COMPLETE', null, 3, 'The stack is empty — DFS is complete.')
+      }
+      return S
+    }
+    function svgGraph(g, st, o = {}) {
+      const N = id => g.nodes.find(n => n.id == id);
+      let h = '<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--edge)"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--gr)"/></marker></defs>';
+      g.edges.forEach((e, i) => {
+        const a = N(e.s), b = N(e.t); if (!a || !b) return; const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, x2 = g.directed ? b.x - dx / d * 26 : b.x, y2 = g.directed ? b.y - dy / d * 26 : b.y, on = st && st.tr.includes(e.s + '|' + e.t);
+        h += `<g data-e="${i}"><line class="ed ${on ? 'on' : ''}" x1="${a.x}" y1="${a.y}" x2="${x2}" y2="${y2}" ${g.directed ? `marker-end="url(#${on ? 'ag' : 'ar'})"` : ''}/><line class="hit" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/></g>`
+      });
+      g.nodes.forEach(n => {
+        let c = '', mk = ''; if (st) {if (n.id === st.cur) c = 'cur', mk = '▶'; else if (st.a == 'bfs' && st.c.includes(n.id)) c = 'disc', mk = 'Q'; else if (st.ord.includes(n.id)) c = 'vis', mk = '✓'}
+        if (!o.mini) {if (n.id == sel || n.id == edgeFrom) c += ' sel'; if (n.id == start && !st) mk = 'S'}
+        h += `<g class="nd ${c}" data-n="${n.id}" tabindex="0" aria-label="Node ${n.label} ${c}"><circle class="b" cx="${n.x}" cy="${n.y}" r="22"/>${c.includes('cur') ? `<circle class="ring" cx="${n.x}" cy="${n.y}" r="30"/>` : ''}<text x="${n.x}" y="${n.y}">${n.label}</text><text class="tag" x="${n.x}" y="${n.y - 32}">${mk}</text></g>`
+      });
+      return h
+    }
+    const pt = (e, svg) => {const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse())};
+    function addNode(x, y, label) {const used = new Set(G.nodes.map(n => n.label)); if (!label) {let i = 0; while (used.has(String.fromCharCode(65 + i % 26) + (i >= 26 ? i : ''))) i++; label = String.fromCharCode(65 + i % 26) + (i >= 26 ? i : '')} const n = {id: ++nid, label, x, y}; G.nodes.push(n); return n}
+    function addEdge(a, b) {if (a == b) return toast('Self-loops are not allowed'); if (G.edges.some(e => (e.s == a && e.t == b) || (!G.directed && e.s == b && e.t == a))) return toast('That edge already exists'); G.edges.push({s: a, t: b}); toast(`Edge ${L(G, a)} ${G.directed ? '→' : '—'} ${L(G, b)} created`); changed()}
+    function delNode(id) {if (!G.nodes.some(n => n.id == id)) return toast('Nothing to delete'); G.nodes = G.nodes.filter(n => n.id != id); G.edges = G.edges.filter(e => e.s != id && e.t != id); if (sel == id) sel = null; changed()}
+    function changed() {stop(); steps = []; idx = -1; render()}
+    function setMode(m) {mode = mode == m ? 'select' : m; edgeFrom = null; $$('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m == mode)); if (mode == 'node') toast('Click the canvas to place a node'); if (mode == 'edge') toast('Click two nodes to connect them'); render()}
+    function sample() {G = {nodes: [], edges: [], directed: false};[['A', 120, 250], ['B', 280, 130], ['C', 280, 370], ['D', 450, 130], ['E', 450, 370], ['F', 640, 250]].forEach(([l, x, y]) => addNode(x, y, l));[[1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 6]].forEach(([a, b]) => G.edges.push({s: a, t: b}))}
+    function randomGraph(n, dirc) {
+      const g = {nodes: [], edges: [], directed: dirc}, add = (a, b) => {if (a != b && !g.edges.some(e => (e.s == a && e.t == b) || (!dirc && e.s == b && e.t == a))) g.edges.push({s: a, t: b})};
+      for (let i = 0; i < n; i++) {const t = i / n * Math.PI * 2 - Math.PI / 2, r = .75 + Math.random() * .25; g.nodes.push({id: i + 1, label: String.fromCharCode(65 + i), x: 400 + Math.cos(t) * 300 * r, y: 250 + Math.sin(t) * 190 * r})}
+      for (let i = 2; i <= n; i++)add(1 + Math.floor(Math.random() * (i - 1)), i); for (let k = 0; k < Math.ceil(n / 3); k++)add(1 + Math.floor(Math.random() * n), 1 + Math.floor(Math.random() * n)); return g
+    }
+    function stop() {clearInterval(timer); timer = null}
+    function begin() {if (!G.nodes.length) {toast('Add a node first'); return false} if (!G.nodes.some(n => n.id == start)) {toast('Choose a starting node'); return false} if (!steps.length) {steps = run(G, start, algo); idx = -1; prevC = []; prevO = 0} return true}
+    function next() {if (!begin()) return; if (idx < steps.length - 1) idx++; if (idx >= steps.length - 1) stop(); render()}
+    function play() {if (idx >= steps.length - 1 && steps.length) {steps = []; idx = -1} if (!begin()) return; stop(); if (idx < 0) next(); timer = setInterval(next, speed); render()}
+    function reset() {stop(); steps = []; idx = -1; prevC = []; prevO = 0; render()}
+    function setAlgo(a) {algo = a; $('#alg').value = a; reset()}
+    function render() {
+      const svg = $('#svg'), s = steps[idx] || null; svg.innerHTML = svgGraph(G, s); $('#empty').style.display = G.nodes.length ? 'none' : 'flex';
+      const sv = $('#st'); if (sv.dataset.k != G.nodes.map(n => n.id + n.label) + '') {sv.dataset.k = G.nodes.map(n => n.id + n.label) + ''; sv.innerHTML = G.nodes.map(n => `<option value="${n.id}">${n.label}</option>`).join('')}
+      if (!G.nodes.some(n => n.id == start)) start = G.nodes.length ? G.nodes[0].id : null; sv.value = start; $('#dir').value = G.directed ? 1 : 0;
+      $('#ttl').textContent = algo == 'bfs' ? 'Breadth-First Search' : 'Depth-First Search'; $('#dsc').textContent = algo == 'bfs' ? 'BFS explores nodes level by level using a queue.' : 'DFS explores one path as deeply as possible before backtracking.';
+      $('#sN').textContent = G.nodes.length; $('#sE').textContent = G.edges.length; $('#sV').textContent = s ? s.nv : 0; $('#sS').textContent = s ? String(idx + 1).padStart(2, '0') + '/' + String(steps.length).padStart(2, '0') : '0';
+      $('#cur').textContent = s && s.cur ? L(G, s.cur) : '—'; $('#cth').textContent = algo == 'bfs' ? 'Queue (Front → Rear)' : 'Stack (Top on top)';
+      const cont = $('#cont'), cc = s ? s.c : []; cont.className = 'chips' + (algo == 'dfs' ? ' stk' : '');
+      cont.innerHTML = cc.length ? cc.map((id, i) => `<div class="chip ${prevC.includes(id) ? '' : 'in'}">${L(G, id)}${algo == 'dfs' && i == cc.length - 1 ? ' ← Top' : ''}</div>`).join('') : '<span class="mu">empty</span>';
+      $('#cnote').textContent = algo == 'bfs' ? 'Nodes leave from the front, enter at the rear.' : 'Nodes push and pop at the top.'; prevC = [...cc];
+      const o = s ? s.ord : []; $('#ord').innerHTML = o.length ? o.map((id, i) => `<span class="${i >= prevO && i == o.length - 1 ? 'chip in' : ''}" style="${i >= prevO && i == o.length - 1 ? 'display:inline-block;padding:0 8px' : ''}">${L(G, id)}</span>`).join(' → ') : '<span class="mu">—</span>'; prevO = o.length;
+      $('#why').innerHTML = s ? (s.bt ? '<div class="bt">↩ Backtracking…</div>' : '') + s.d : '<span class="mu">Press <b>Next Step</b> or <b>Start</b> to begin.</span>';
+      $('#code').innerHTML = PSEUDO[algo].map((t, i) => `<span class="${s && s.line == i ? 'hl' : ''}">${t.replace(/\b(while|for each|if|else|is not|is|Add|Push|Mark|Remove|Pop|empty|visited)\b/g, '<b class="k">$1</b>') || ' '}</span>`).join('');
+      const fin = s && s.type == 'COMPLETE', dn = $('#done'); dn.style.display = fin ? 'block' : 'none';
+      if (fin) dn.innerHTML = `<h2 style="font-size:24px">Traversal Complete ✓</h2><p>Algorithm: <b>${algo.toUpperCase()}</b> · Start: <b>${L(G, start)}</b> · Nodes visited: <b>${s.ord.length}</b> · Steps: <b>${steps.length}</b></p><p class="mono">${s.ord.map(i => L(G, i)).join(' → ')}</p><button class="pri" onclick="play()">Run Again</button>`;
+      const pl = !!timer, e = !G.nodes.length; $('#go').disabled = pl || e; $('#pause').disabled = !pl; $('#next').disabled = pl || e || fin; $('#reset').disabled = idx < 0 && !pl; $('#go').textContent = fin ? '↻ Run Again' : '▶ Start'
+    }
+    // canvas interaction
+    const svg = $('#svg');
+    svg.addEventListener('pointerdown', e => {const n = e.target.closest('[data-n]'); if (n) {drag = {id: +n.dataset.n, moved: false}; svg.setPointerCapture(e.pointerId); e.preventDefault()} });
+    svg.addEventListener('pointermove', e => {if (!drag) return; const p = pt(e, svg), n = G.nodes.find(x => x.id == drag.id); if (!drag.moved && Math.hypot(p.x - n.x, p.y - n.y) < 4) return; drag.moved = true; n.x = Math.max(25, Math.min(775, p.x)); n.y = Math.max(25, Math.min(475, p.y)); render()});
+    svg.addEventListener('pointerup', e => {
+      if (drag) {const d = drag; drag = null; if (!d.moved) nodeClick(d.id); return }
+      const ed = e.target.closest('[data-e]'); if (ed && mode == 'del') {G.edges.splice(+ed.dataset.e, 1); toast('Edge deleted'); changed(); return }
+      if (mode == 'node' && !e.target.closest('[data-n]')) {const p = pt(e, svg); if (G.nodes.length >= 26) return toast('Node limit reached'); addNode(p.x, p.y); changed()}
+    });
+    svg.addEventListener('dblclick', e => {const n = e.target.closest('[data-n]'); if (!n) return; const nd = G.nodes.find(x => x.id == +n.dataset.n), v = prompt('Rename node (max 3 chars):', nd.label); if (v && v.trim()) {if (G.nodes.some(x => x !== nd && x.label == v.trim().slice(0, 3))) return toast('Label already used'); nd.label = v.trim().slice(0, 3); changed()} });
+    svg.addEventListener('keydown', e => {const n = e.target.closest('[data-n]'); if (n && (e.key == 'Enter' || e.key == ' ')) {e.preventDefault(); e.stopPropagation(); nodeClick(+n.dataset.n)} });
+    function nodeClick(id) {if (mode == 'del') return delNode(id); if (mode == 'edge') {if (edgeFrom == null) {edgeFrom = id; render()} else {const a = edgeFrom; edgeFrom = null; addEdge(a, id); render()} return } sel = id; start = id; render()}
+    $$('[data-m]').forEach(b => b.onclick = () => setMode(b.dataset.m));
+    $('#first').onclick = () => {addNode(400, 250); changed()};
+    $('#rand').onclick = () => {G = randomGraph(+$('#rn').value, G.directed); sel = null; start = 1; nid = G.nodes.length; toast('Random connected graph generated'); changed()};
+    $('#clear').onclick = () => {G.nodes = []; G.edges = []; sel = null; nid = 0; toast('Graph cleared'); changed()};
+    $('#dir').onchange = e => {G.directed = e.target.value == '1'; changed()}; $('#alg').onchange = e => setAlgo(e.target.value); $('#st').onchange = e => {start = +e.target.value; reset()};
+    $('#go').onclick = play; $('#pause').onclick = () => {stop(); render()}; $('#next').onclick = next; $('#reset').onclick = reset;
+    $$('#spd button').forEach(b => b.onclick = () => {speed = +b.dataset.s; $$('#spd button').forEach(x => x.classList.toggle('on', x == b)); if (timer) play()});
+    $('#copy').onclick = async () => {try {await navigator.clipboard.writeText(PSEUDO[algo].join('\n')); toast('Pseudocode copied')} catch (_) {toast('Copy failed — select the code manually')} };
+    document.addEventListener('keydown', e => {
+      if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+      if (e.key == 'Escape') {edgeFrom = null; mode = 'select'; $$('[data-m]').forEach(b => b.classList.remove('on')); modal.style.display = 'none'; render()}
+      else if (e.key == 'ArrowRight') {e.preventDefault(); next()} else if (e.key == 'r' || e.key == 'R') reset();
+      else if (e.key == 'Delete' && sel) delNode(sel); else if (e.key == ' ' && e.target.tagName != 'BUTTON') {e.preventDefault(); timer ? (stop(), render()) : play()}
+    });
+    // theme
+    const modal = $('#modal'); $('#kb').onclick = () => modal.style.display = 'flex';
+    function theme(t) {document.documentElement.dataset.theme = t; try {localStorage.setItem('gx-theme', t)} catch (_) { } }
+    let th = 'dark'; try {th = localStorage.getItem('gx-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')} catch (_) { } document.documentElement.dataset.theme = th;
+    $('#theme').onclick = () => theme(document.documentElement.dataset.theme == 'dark' ? 'light' : 'dark');
+    // practice
+    const P = {att: 0, ok: 0, streak: 0, d: 0, q: null, tried: false};
+    function newQ() {
+      const cfg = [[5], [7], [9]][P.d][0], dirc = P.d == 2 && Math.random() < .5, g = randomGraph(cfg, dirc); if (P.d == 0) g.edges = g.edges.slice(0, cfg);
+      const a = Math.random() < .5 ? 'bfs' : 'dfs', S = run(g, 1, a), ans = S[S.length - 1].ord.map(i => L(g, i)), set = new Set([ans.join(' → ')]); let tries = 0;
+      while (set.size < 4 && tries++ < 200) {const c = [...ans], i = 1 + Math.floor(Math.random() * (c.length - 1)), j = 1 + Math.floor(Math.random() * (c.length - 1));[c[i], c[j]] = [c[j], c[i]]; set.add(c.join(' → '))}
+      P.q = {g, a, ans: ans.join(' → '), opts: [...set].sort(() => Math.random() - .5), S}; P.tried = false;
+      $('#qt').textContent = `What is the ${a.toUpperCase()} traversal starting from A?${dirc ? ' (directed graph)' : ''}`; $('#qsvg').innerHTML = svgGraph(g, null, {mini: 1}); $('#fb').innerHTML = '';
+      $('#opts').innerHTML = P.q.opts.map(o => `<button class="mono">${o}</button>`).join(''); $$('#opts button').forEach(b => b.onclick = () => answer(b))
+    }
+    function answer(b) {
+      if (b.classList.contains('ok')) return; const right = b.textContent == P.q.ans;
+      if (!P.tried) {P.tried = true; P.att++; if (right) {P.ok++; P.streak++} else P.streak = 0}
+      b.classList.add(right ? 'ok' : 'no'); $('#fb').innerHTML = right ? `<b style="color:var(--gr)">✓ Correct!</b> Your traversal matches the ${P.q.a.toUpperCase()} order for this graph.` : `<b style="color:var(--pk)">Not quite.</b> Check the ${P.q.a == 'bfs' ? 'queue' : 'stack'} order and try again.`;
+      if (right) $$('#opts button').forEach(x => x.disabled = x !== b); score()
+    }
+    function score() {$('#pA').textContent = P.att; $('#pC').textContent = P.ok; $('#pP').textContent = (P.att ? Math.round(P.ok / P.att * 100) : 0) + '%'; $('#pK').textContent = P.streak; $$('#diff button').forEach(b => b.classList.toggle('on', +b.dataset.d == P.d))}
+    $('#expl').onclick = () => {const q = P.q; $('#fb').innerHTML = `<b>Answer: <span class="mono">${q.ans}</span></b><br>` + q.S.filter(s => s.type != 'COMPLETE').map((s, i) => `${i + 1}. ${s.d}`).join('<br>')};
+    $('#nq').onclick = newQ; $$('#diff button').forEach(b => b.onclick = () => {P.d = +b.dataset.d; score(); newQ()});
+    sample(); render(); score(); newQ();
+  </script>
+</body>
+
+</html>
